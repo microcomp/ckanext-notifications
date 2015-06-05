@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import uuid
 import logging
 
@@ -7,6 +8,7 @@ from ckan import model
 from ckan.lib.celery_app import celery
 import ckan.logic as logic
 from suds.client import Client
+import datetime
 
 log = logging.getLogger(__name__)
 
@@ -15,62 +17,161 @@ ValidationError = logic.ValidationError
 
 class NotificationPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IActions)
+    plugins.implements(plugins.IConfigurable)
     plugins.implements(plugins.IDomainObjectModification, inherit=True)
+    plugins.implements(plugins.IResourceUrlChange)
+    plugins.implements(plugins.IMapper, inherit=True)
     
     def get_actions(self):
         return {}
     
+    def after_insert(self, mapper, connection, instance):
+        log.info('-------------------------')
+        log.info('mapper: %s', mapper)
+        log.info('connection: %s', connection)
+        log.info('instance: %s', instance)
+        
+    def after_update(self, mapper, connection, instance):
+        log.info('-------------------------')
+        log.info('mapper: %s', mapper)
+        log.info('connection: %s', connection)
+        log.info('instance: %s', instance)
+    
+    def configure(self, config):
+        self.site_url = config.get('ckan.site_url')
+        self.smtp_server = config.get('smtp.server', 'localhost:25')
+        url = self.smtp_server.split(':')
+        log.info('url: %s', url)
+        if len(url)==2:
+            smtp_server, smtp_server_port = url
+            self.smtp_server = smtp_server
+            self.smtp_server_port = str(smtp_server_port)
+        else:
+            self.smtp_server_port = '25'
+        log.info('smtp server: %s', self.smtp_server)
+        log.info('smtp server port: %s', self.smtp_server_port) 
+        self.mail_from = config.get('smtp.mail_from')
+        self.mail_from_name = config.get('smtp.mail_from_name')
+    
     def notify(self, entity, operation=None):
         log.warn("notify")
-        self._notify(entity, operation)
+        log.info('entity: %s', entity)
+        log.info('operation: %s', operation)
+        if not isinstance(entity, model.Resource) and not isinstance(entity, model.Package):
+            return
+
+        if operation:
+                self._notify(entity, operation)
+        else:
+            # if operation is None, resource URL has been changed, as the
+            # notify function in IResourceUrlChange only takes 1 parameter
+            self._notify(entity, 'resource_url_changed')
+    def _get_org_followers(self, org_id):
+        context = {'ignore_auth' : True}
+        followers = toolkit.get_action('group_follower_list')(context = context, data_dict={'id' : org_id})
+        log.info('followers: %s', followers)
+        users = []
+        for follower in followers:
+            user_obj = model.User.get(follower['id'])
+            if user_obj:
+                users.append((user_obj.email, user_obj.fullname))
+        return users
     
-    def notify_after_commit(self, entity, operation=None):
-        log.warn("notify_after_commit")
-        self._notify(entity, operation)
+    def _get_dataset_followers(self, dataset_id):
+        context = {'ignore_auth' : True}
+        followers = toolkit.get_action('dataset_follower_list')(context = context, data_dict={'id' : dataset_id})
+        log.info('followers: %s', followers)
+        users = []
+        for follower in followers:
+            user_obj = model.User.get(follower['id'])
+            if user_obj:
+                users.append((user_obj.email, user_obj.fullname))
+        return users
         
     def _notify(self, entity, operation):
-        #model.Session.commit()
-        if operation:
-            log.warn("Operation")
-            log.warn(operation)
-            if operation == model.DomainObjectOperation.new and isinstance(entity, model.package.Package):
-                log.warn("Dataset created")
-                url = 'http://www.weather.gov/forecasts/xml/DWMLgen/wsdl/ndfdXML.wsd'
-                client = Client(url)
-                log.info('received wsdl: %s', client)
-#                 log.warn(type(entity))
-#                 log.warn(entity)
-#                 
-#                 try:
-#                     following_users = toolkit.get_action('dataset_follower_list')(context={'ignore_auth': True},data_dict={'id' : entity.id})
-#                 except: 
-#                     log.warn("smth is wrong")
-#                 log.warn(following_users)
-#                 users = [u['id'] for u in following_users]
-#                 log.warn(users)
-#                 log.warn(entity.creator_user_id)
-#                 if not entity.creator_user_id in users:
-#                     log.warn("creator not following dataset")
-#                     user_detail = toolkit.get_action('user_show')(data_dict={'id' : entity.creator_user_id})
-#                     #logging.warn(user_detail)
-#                     log.warn(user_detail['apikey'])
-#                     #toolkit.get_action('follow_dataset')(context = {'ignore_auth': True, 'user':entity.creator_user_id}, data_dict={'id' : entity.id})
-#                     #celery.send_task("notifications.followdataset", args=[user_detail['apikey'], entity.id], countdown=60, task_id=str(uuid.uuid4()))
-#                     c = toolkit.c
-#                     context = {'model': model, 'session': model.Session, 'user': c.user or c.author, 'auth_user_obj': c.userobj}
-#                     data_dict = {'id': entity.id}
-#                     try:
-#                         toolkit.get_action('follow_dataset')(data_dict=data_dict)
-#                     except ValidationError as e:
-#                         log.error('Validation error occured when making attempt to follow dataset %s: %s', (entity.id,e))
-#                     except NotAuthorized as e:
-#                         log.error('Authorization error occured when making attempt to follow dataset %s: %s', (entity.id,e))
-#                     log.warn("creator is following dataset since now!!!!")
-#                 else:
-#                     log.warn("User already following dataset")
+        user = toolkit.get_action('get_site_user')(
+            {'model': model, 'ignore_auth': True, 'defer_commit': True}, {}
+        )
+        log.info('entity: %s', entity)
+        log.info('operation: %s', operation)
+        data_dict = {}
+        data_dict['recipients'] = []
+        data_dict['entity_id'] = entity.id
+        data_dict['entity_name'] = entity.name
+        if isinstance(entity, model.Package):
+            if operation=='new':
+                data_dict['entity_action'] = u'vytvorený dataset'
+            elif operation=='changed':
+                data_dict['entity_action'] = u'upravený dataset'
+            elif operation=='deleted':
+                data_dict['entity_action'] = u'odstránený dataset'
+            data_dict['private'] = entity.private
+            if not data_dict['private']:
+                data_dict['recipients'] = data_dict['recipients'] + \
+                                         self._get_dataset_followers(entity.id) + \
+                                         self._get_org_followers(entity.owner_org)
+            data_dict['entity_type'] = 'package'
+            data_dict['entity_url'] = toolkit.url_for(controller='package', action='read',id=entity.id)
+            data_dict['entity_creator'] = entity.creator_user_id
+            data_dict['entity_owner_org'] = entity.owner_org
+            owner_obj = model.User.get(entity.owner_org)
+            if owner_obj:
+                data_dict['recipients'].append((owner_obj.email, owner_obj.fullname))
             else:
-                log.critical("Operation not defined")
+                log.warn('couldnt find associated user object for organization %s', entity.owner_org)
         else:
-            log.critical("Operation not defined")
-            
+            if operation=='new':
+                data_dict['entity_action'] = u'vytvorený dátový zdroj'
+            elif operation=='changed':
+                data_dict['entity_action'] = u'upravený dátový zdroj'
+            elif operation=='deleted':
+                data_dict['entity_action'] = u'odstránený dátový zdroj'
+            data_dict['entity_type'] = 'resource'
+            data_dict['package_id'] = entity.resource_group.package.id
+            data_dict['entity_url'] = toolkit.url_for(controller='package', action='resource_read',id=data_dict['package_id'], resource_id = entity.id)
+            pkg = model.Package.get(data_dict['package_id'])
+            data_dict['package_creator'] = pkg.creator_user_id
+            data_dict['package_owner_org'] = pkg.owner_org
+            pkg_owner_obj = model.User.get(pkg.owner_org)
+            if pkg_owner_obj:
+                data_dict['recipients'].append((pkg_owner_obj.email, pkg_owner_obj.fullname))
+            else:
+                log.warn('User account to org %s doesnt exist!')
+            status = entity.extras.get('status', 'private')
+            if status == 'private':
+                data_dict['private'] = True
+            else:
+                data_dict['private'] = False
+                data_dict['recipients'] =  data_dict['recipients'] + self._get_dataset_followers(data_dict['package_id']) + self._get_org_followers(data_dict['package_owner_org'])
+        data_dict['revision_id'] = entity.revision_id
+        #revision = model.Session.query(model.Revision).get(entity.revision_id)
+        #executor_id = toolkit.get_converter('convert_user_name_or_id_to_id')(revision.author, {'session' : model.Session})
+        #data_dict['executor_id'] = executor_id
+        #executor_obj = model.User.get(executor_id)
+        #data_dict['recipients'].append((executor_obj.email, executor_obj.fullname))
+        log.info('data for notification send: %s', data_dict)
+        
+        task_id = model.types.make_uuid()
+        task_status = {
+            'entity_id': entity.id,
+            'entity_type': data_dict['entity_type'],
+            'task_type': u'notify',
+            'key': u'celery_task_id',
+            'value': task_id,
+            'error': u'',
+            'last_updated': datetime.datetime.now().isoformat()
+        }
+        task_context = {
+            'model': model,
+            'user': user.get('name'),
+        }
+        toolkit.get_action('task_status_update')(task_context, task_status)
+        context = {'site_url' : self.site_url,
+                   'smtp_server' : self.smtp_server,
+                   'smtp_server_port' : self.smtp_server_port,
+                   'mail_from' : self.mail_from,
+                   'mail_from_name' : self.mail_from_name
+        }
+        celery.send_task('notifications.send', args=[context, data_dict], task_id=task_id)
+        
         

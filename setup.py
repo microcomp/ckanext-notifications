@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.0'
+version = '0.1'
 
 setup(
     name='ckanext-notifications',
@@ -29,5 +29,7 @@ setup(
         [ckan.celery_task]
         tasks = ckanext.notifications.celery_import:task_imports
         
+        [paste.paster_command]
+        notifications-cmd = ckanext.notifications.notifications_cmd:NotificationsCmd
     ''',
 )
