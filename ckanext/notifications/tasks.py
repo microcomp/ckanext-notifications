@@ -11,6 +11,7 @@ from ckan import model
 from ckan.lib.celery_app import celery
 from ckan.lib.celery_app import celery
 import logging
+
 log = logging.getLogger(__name__)
 
 @celery.task(name = "notifications.followdataset")
@@ -60,4 +61,24 @@ Tento email Vám bol vygenerovaný automaticky, preto naň, prosím, neodpisujte
         sended.append(recipient)
         message = message.format(name=recipient[1], action = data_dict['entity_action'], entity_name = data_dict['entity_name'], entity_id = data_dict['entity_id'], url = url, signature = sender_name)
         _send_mail(sender, sender_name, recipient[0], recipient[1], subject, message, mailserver)
+    mailserver.quit()
+    
+    
+@celery.task(name = "notifications.general.send")
+def send_general_notifications(context, data_dict):
+    log.info('smtp server port: %s', context['smtp_server_port'])
+    log.info('smtp server port type: %s', type(context['smtp_server_port']))
+    mailserver = smtplib.SMTP(str(context['smtp_server']), str(context['smtp_server_port']))
+    mailserver.ehlo()
+    sender = context['mail_from']
+    sender_name = context['mail_from_name']
+    subject = data_dict['subject']
+    message = data_dict['message']
+    recipients = data_dict['recipients']
+    sended = []
+    for recipient in recipients:
+        if recipient in sended:
+            continue
+        sended.append(recipient)
+        _send_mail(sender, sender_name, recipient[0], recipient[1], subject, message.format(name = recipient[1], signature = sender_name), mailserver)
     mailserver.quit()

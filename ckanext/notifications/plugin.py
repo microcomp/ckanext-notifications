@@ -1,19 +1,71 @@
 # -*- coding: utf-8 -*-
 import uuid
 import logging
+import datetime
 
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 from ckan import model
 from ckan.lib.celery_app import celery
 import ckan.logic as logic
-from suds.client import Client
-import datetime
+from pylons import config
+
 
 log = logging.getLogger(__name__)
 
 NotAuthorized = logic.NotAuthorized
 ValidationError = logic.ValidationError
+
+def send_general_notification(context, data_dict):
+    '''
+    data_dict parameters:
+        entity_id : <string>
+        entity_type : <string>
+        subject : <string>
+        message : <string>
+        recipients : <list> of pairs (email, display_name)
+    '''
+    user = toolkit.get_action('get_site_user')(
+        {'model': model, 'ignore_auth': True, 'defer_commit': True}, {}
+    )
+    site_url = config.get('ckan.site_url')
+    smtp_server = config.get('smtp.server', 'localhost:25')
+    url = smtp_server.split(':')
+    log.info('url: %s', url)
+    if len(url)==2:
+        smtp_server, smtp_server_port = url
+        smtp_server_port = str(smtp_server_port)
+    else:
+        smtp_server_port = '25'
+    log.info('smtp server: %s', smtp_server)
+    log.info('smtp server port: %s', smtp_server_port) 
+    mail_from = config.get('smtp.mail_from')
+    mail_from_name = config.get('smtp.mail_from_name')
+    context = {'site_url' : site_url,
+                   'smtp_server' : smtp_server,
+                   'smtp_server_port' : smtp_server_port,
+                   'mail_from' : mail_from,
+                   'mail_from_name' : mail_from_name}
+    
+    log.info('data for notification send: %s', data_dict)
+    
+    task_id = model.types.make_uuid()
+    task_status = {
+        'entity_id': data_dict['entity_id'],
+        'entity_type': data_dict['entity_type'],
+        'task_type': u'notify',
+        'key': u'celery_task_id',
+        'value': task_id,
+        'error': u'',
+        'last_updated': datetime.datetime.now().isoformat()
+    }
+    task_context = {
+        'model': model,
+        'user': user.get('name'),
+    }
+    toolkit.get_action('task_status_update')(task_context, task_status)
+    celery.send_task('notifications.general.send', args=[context, data_dict], task_id=task_id)
+
 
 class NotificationPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IActions)
@@ -23,7 +75,7 @@ class NotificationPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IMapper, inherit=True)
     
     def get_actions(self):
-        return {}
+        return {'send_general_notification' : send_general_notification}
     
     def after_insert(self, mapper, connection, instance):
         log.info('-------------------------')
