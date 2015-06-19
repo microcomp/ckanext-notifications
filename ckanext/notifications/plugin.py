@@ -119,6 +119,8 @@ class NotificationPlugin(plugins.SingletonPlugin):
             # notify function in IResourceUrlChange only takes 1 parameter
             self._notify(entity, 'resource_url_changed')
     def _get_org_followers(self, org_id):
+        if not org_id:
+            return []
         context = {'ignore_auth' : True}
         followers = toolkit.get_action('group_follower_list')(context = context, data_dict={'id' : org_id})
         log.info('followers: %s', followers)
@@ -166,11 +168,12 @@ class NotificationPlugin(plugins.SingletonPlugin):
             data_dict['entity_url'] = toolkit.url_for(controller='package', action='read',id=entity.id)
             data_dict['entity_creator'] = entity.creator_user_id
             data_dict['entity_owner_org'] = entity.owner_org
-            owner_obj = model.User.get(entity.owner_org)
-            if owner_obj:
-                data_dict['recipients'].append((owner_obj.email, owner_obj.fullname))
-            else:
-                log.warn('couldnt find associated user object for organization %s', entity.owner_org)
+            if entity.owner_org:
+                owner_obj = model.User.get(entity.owner_org)
+                if owner_obj:
+                    data_dict['recipients'].append((owner_obj.email, owner_obj.fullname))
+                else:
+                    log.warn('couldnt find associated user object for organization %s', entity.owner_org)
         else:
             if operation=='new':
                 data_dict['entity_action'] = u'vytvorený dátový zdroj'
