@@ -72,23 +72,10 @@ class NotificationPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurable)
     plugins.implements(plugins.IDomainObjectModification, inherit=True)
     plugins.implements(plugins.IResourceUrlChange)
-    plugins.implements(plugins.IMapper, inherit=True)
     
     def get_actions(self):
         return {'send_general_notification' : send_general_notification}
-    
-    def after_insert(self, mapper, connection, instance):
-        log.info('-------------------------')
-        log.info('mapper: %s', mapper)
-        log.info('connection: %s', connection)
-        log.info('instance: %s', instance)
-        
-    def after_update(self, mapper, connection, instance):
-        log.info('-------------------------')
-        log.info('mapper: %s', mapper)
-        log.info('connection: %s', connection)
-        log.info('instance: %s', instance)
-    
+
     def configure(self, config):
         self.site_url = config.get('ckan.site_url')
         self.smtp_server = config.get('smtp.server', 'localhost:25')
