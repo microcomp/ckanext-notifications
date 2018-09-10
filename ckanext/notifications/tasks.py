@@ -9,7 +9,6 @@ import ckan.plugins.toolkit as toolkit
 import uuid
 from ckan import model
 from ckan.lib.celery_app import celery
-from ckan.lib.celery_app import celery
 import logging
 
 log = logging.getLogger(__name__)

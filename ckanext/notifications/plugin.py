@@ -316,7 +316,7 @@ class NotificationPlugin(plugins.SingletonPlugin):
         log.info('mapper: %s', mapper)
         log.info('connection: %s', connection)
         log.info('instance: %s', instance)
-    
+
     def configure(self, config):
         self.site_url = config.get('ckan.site_url')
         self.smtp_server = config.get('smtp.server', 'localhost:25')
