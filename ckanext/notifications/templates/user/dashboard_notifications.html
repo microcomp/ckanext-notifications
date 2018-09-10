@@ -1,0 +1,94 @@
+{% extends "user/dashboard.html" %}
+
+{% block dashboard_activity_stream_context %}{% endblock %}
+
+{% block page_primary_action %}
+  
+{% endblock %}
+
+{% block primary_content_inner %}
+  <h2 class="hide-heading">{{ _('Notifications') }}</h2>
+ 
+  <div>
+    <form action="/dashboard/notifications/saveChanges" method="post" enctype="multipart/form-data">
+        <div width="40%" style="min-width: 200px; margin-bottom: 20px;">
+            <div width="*" style="margin-right: 10px; display: inline; vertical-align: middle;">{{ _('Notification Email') }}</div>
+            <input width="*" style="margin-bottom: 0px;" type="text" name="email" placeholder="{{ _('Setup Your notification email') }}" value="{{ c.notification_email}}" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$" />
+        </div>
+        {% if c.email_error %}
+            <div style="margin-bottom: 20px;color: red; font-weight: bold;">{{ c.email_error }}</div>
+        {% endif %}
+        
+        <input type="hidden" name="foeCount" value="{{ c.followed_count }}" />
+        {% if c.ret_url %}
+        <input type="hidden" name="ret_url" value="{{ c.ret_url }}" />
+        {% endif %}
+        {% if c.fId %}
+        <input type="hidden" name="fId" value="{{ c.fId }}" />
+        {% endif %}
+        {% if c.fType %}
+        <input type="hidden" name="fType" value="{{ c.fType }}" />
+        {% endif %}
+        
+        
+        {% if c.followed_orgs and c.followed_orgs|count > 0 %}
+        <div style="margin-bottom: 10px;">
+            {{ _('Following Organizations')  }}
+        </div>
+        <div style="margin-bottom: 20px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;">
+                {% for org in c.followed_orgs %}
+                        
+                    <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
+                    <input type="hidden" name="foe[{{ org["count"] }}].type" value="organization" />
+                    <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
+                        <td width="*">{{ org["display_name"] }}</td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+        {% if c.followed_datasets and c.followed_datasets|count > 0 %}
+        <div style="margin-bottom: 10px;">
+            {{ _('Following Datasets')  }}
+        </div>
+        <div style="margin-bottom: 20px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;">
+                {% for org in c.followed_datasets %}
+                        
+                    <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
+                    <input type="hidden" name="foe[{{ org["count"] }}].type" value="dataset" />
+                    <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
+                        <td width="*">{{ org["display_name"] }}</td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+		{% if c.followed_resources and c.followed_resources|count > 0 %}
+        <div style="margin-bottom: 10px;">
+            {{ _('Following Resources') }}
+        </div>
+        <div style="margin-bottom: 20px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;">
+                {% for org in c.followed_resources %}
+                        
+                    <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
+                    <input type="hidden" name="foe[{{ org["count"] }}].type" value="resource" />
+                    <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
+                        <td width="*">{{ org["display_name"] }}</td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+        <input type="submit" value="{{ _('Save Changes') }}"></input>
+    </form>
+  </div>
+{% endblock %}

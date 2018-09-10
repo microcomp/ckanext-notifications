@@ -1,0 +1,6 @@
+{% ckan_extends %}
+
+{% block secondary_content %}
+  {% snippet 'snippets/organization.html', organization=c.group_dict, show_nums=true, fId = c.fId, following = c.following, fType = c.fType, notif_check_result = c.notif_check_result  %}
+  {% block organization_facets %}{% endblock %}
+{% endblock %}

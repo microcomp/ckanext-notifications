@@ -47,19 +47,22 @@ Dobrý deň {name},
 oznamujeme Vám, že bol {action} {entity_name} ({entity_id}).
 V systéme MOD je dostupný na URL adrese: {url} .
 
+Tieto notifikácie je možné zrušiť na adrese: {notif_url}
+
 Tento email Vám bol vygenerovaný automaticky, preto naň, prosím, neodpisujte.
    
 {signature}
 '''
     url = urlparse.urljoin(context['site_url'], data_dict['entity_url'])
+    notif_url = urlparse.urljoin(context['site_url'], '/dashboard/notifications')
     recipients = data_dict['recipients']
     log.info('recipients without duplicates: %s', recipients)
     sended = []
     for recipient in recipients:
-        if recipient in sended:
+        if recipient[0] in sended:
             continue
-        sended.append(recipient)
-        message = message.format(name=recipient[1], action = data_dict['entity_action'], entity_name = data_dict['entity_name'], entity_id = data_dict['entity_id'], url = url, signature = sender_name)
+        sended.append(recipient[0])
+        message = message.format(name=recipient[1], action = data_dict['entity_action'], entity_name = data_dict['entity_name'], entity_id = data_dict['entity_id'], url = url, signature = sender_name, notif_url = notif_url)
         _send_mail(sender, sender_name, recipient[0], recipient[1], subject, message, mailserver)
     mailserver.quit()
     
@@ -77,8 +80,8 @@ def send_general_notifications(context, data_dict):
     recipients = data_dict['recipients']
     sended = []
     for recipient in recipients:
-        if recipient in sended:
+        if recipient[0] in sended:
             continue
-        sended.append(recipient)
+        sended.append(recipient[0])
         _send_mail(sender, sender_name, recipient[0], recipient[1], subject, message.format(name = recipient[1], signature = sender_name), mailserver)
     mailserver.quit()

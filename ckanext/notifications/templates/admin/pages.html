@@ -1,0 +1,5 @@
+{% ckan_extends %}
+
+{% block extended_admin_links %}
+<li><h2 style="font-size: 1.3em;"> <a href="{{h.url_for(controller='ckanext.notifications.admin_controller:AdminNotificationsController', action='AdminNotifications')}}"><i class="fa fa-external-link" ></i> {{_('Notifications Administration')}} </a></h2> </li>
+{% endblock %}

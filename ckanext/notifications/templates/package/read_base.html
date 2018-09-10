@@ -1,0 +1,5 @@
+{% ckan_extends %}
+
+{% block package_info %}
+    {% snippet 'package/snippets/info.html', pkg=pkg, fId = c.fId, following = c.following, fType = c.fType, notif_check_result = c.notif_check_result %}
+{% endblock %}

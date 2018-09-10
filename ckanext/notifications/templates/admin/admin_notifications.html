@@ -1,0 +1,240 @@
+{% extends "admin/index.html" %}
+
+{% block primary_content%}
+  <h2 class="hide-heading">{{ _('Notifications') }}</h2>
+  <form action="/admin/notifications" method="post" enctype="multipart/form-data" id="userSubmitForm">
+   <div class="control-group">
+      <label for="field-users" class="control-label">{{ _('Users') }}</label>
+      <div class="controls">
+        <select id="field-users" name="users" data-module="autocomplete">
+			{% for user in c.users %}
+				<option value="{{user.id}}" {% if c.selUser == user.id %} selected {% endif %} >{{user.fullname}}</option>
+			{% endfor %}
+        </select>
+		
+      </div>
+    </div>	
+  </form>
+   <form action="/admin/notifications" method="post" enctype="multipart/form-data" id="dsSubmitForm">
+   <div class="control-group">
+      <label for="field-datasets" class="control-label">{{ _('Datasets') }}</label>
+      <div class="controls">
+        <select id="field-datasets" name="datasets" data-module="autocomplete">
+			{% for ds in c.datasets %}
+				<option value="{{ds}}" {% if c.selDatasetName == ds %} selected {% endif %} >{{ds}}</option>
+			{% endfor %}
+        </select>
+		
+      </div>
+    </div>	
+  </form>
+  <script type="application/javascript">
+		
+		
+		
+		$(window).load(function(){
+			$('#field-users').change(function(ev){
+				//$.ajax({				
+				//	url: "/api/action/admin_get_user_followings?user="+$(this).val(),
+				//	success: function(result){
+				//		process_user_follow_result(result.result);
+				//	}
+				$("#userSubmitForm").submit();
+				
+			});
+			
+			$('#field-datasets').change(function(ev){
+				//$.ajax({				
+				//	url: "/api/action/admin_get_user_followings?user="+$(this).val(),
+				//	success: function(result){
+				//		process_user_follow_result(result.result);
+				//	}
+				$("#dsSubmitForm").submit();
+				
+			});
+			
+			$("#userSubmit").prop("disabled",false);
+			$("#userSubmit").attr("disabled",false);
+				
+		});
+		
+		</script>
+    <form action="/admin/notifications/saveChanges" method="post" enctype="multipart/form-data">
+		{% if c.selUser %}
+		<input type="hidden" name="saveType" value="user"/>
+		<input type="hidden" name="selUser" value="{{ c.selUser }}"/>
+        <div width="40%" style="min-width: 200px; margin-bottom: 20px;">
+            <div width="*" style="margin-right: 10px; display: inline; vertical-align: middle;">{{ _('Notification Email') }}</div>
+            <input width="*" style="margin-bottom: 0px;" type="text" name="email" placeholder="{{ _('Setup Your notification email') }}" value="{{ c.notification_email}}" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$" />
+        </div>
+        {% if c.email_error %}
+            <div style="margin-bottom: 20px;color: red; font-weight: bold;">{{ c.email_error }}</div>
+        {% endif %}
+        
+        <input type="hidden" name="foeCount" value="{{ c.followed_count }}" />
+       
+        
+        
+      
+        <div style="margin-bottom: 10px;">
+            {{ _('Following Organizations')  }}
+        </div>
+        <div style="margin-bottom: 20px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;">
+                {% for org in c.followed_orgs %}
+                        
+                    <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
+                    <input type="hidden" name="foe[{{ org["count"] }}].type" value="organization" />
+                    <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
+                        <td width="*">{{ org["display_name"] }}</td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                    </tr>
+                {% endfor %}
+            </table>
+			<div width="40%" style="min-width: 200px; margin-bottom: 20px;">
+				<div class="control-group">
+					<label for="field-addOrganization" class="control-label">{{ _('Organizations') }}</label>
+					<div class="controls">
+						<select id="field-addOrganization" name="addOrganization" data-module="autocomplete">
+							<option value="" ></option>
+						{% for org in c.organizations %}
+							<option value="{{org }}" >{{org}}</option>
+						{% endfor %}
+						</select>
+			
+					</div>
+				</div>	
+			<script type="application/javascript">
+					function AddOrg(){
+						$.ajax({
+							method: "POST",
+							data: JSON.stringify({selUser:'{{ c.selUser }}',name:$('#field-addOrganization').val()}),
+							url: "/api/action/admin_follow_org",
+							success: function(result){
+								$("#userSubmitForm").submit();
+							},
+							error: function(){
+								alert('{{ _("Unable to add rganization")}}')
+							}
+						});
+						
+					}
+				</script>
+				<input width="*" type="button" style="margin-right: 10px; display: inline; vertical-align: middle;" onClick="javascript:AddOrg()" value="{{ _('Add Organization') }}"></input>
+		</div>
+        </div>
+       
+        
+        <div style="margin-bottom: 10px;">
+            {{ _('Following Datasets')  }}
+        </div>
+        <div style="margin-bottom: 20px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;">
+                {% for org in c.followed_datasets %}
+                        
+                    <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
+                    <input type="hidden" name="foe[{{ org["count"] }}].type" value="dataset" />
+                    <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
+                        <td width="*">{{ org["display_name"] }}</td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                    </tr>
+                {% endfor %}
+            </table>
+			<div width="40%" style="min-width: 200px; margin-bottom: 20px;">
+				<div class="control-group">
+					<label for="field-addDataset" class="control-label">{{ _('Datasets') }}</label>
+					<div class="controls">
+						<select id="field-addDataset" name="addDataset" data-module="autocomplete">
+							<option value="" ></option>
+						{% for org in c.datasets %}
+							<option value="{{org }}" >{{org}}</option>
+						{% endfor %}
+						</select>
+			
+					</div>
+				</div>	
+			<script type="application/javascript">
+					function AddDataset(){
+						$.ajax({
+							method: "POST",
+							data: JSON.stringify({selUser:'{{ c.selUser }}',name:$('#field-addDataset').val()}),
+							url: "/api/action/admin_follow_dataset",
+							success: function(result){
+								$("#userSubmitForm").submit();
+							},
+							error: function(){
+								alert('{{ _("Unable to add dataset")}}')
+							}
+						});
+						
+					}
+			</script>
+			<input width="*" type="button" style="margin-right: 10px; display: inline; vertical-align: middle;" onClick="javascript:AddDataset()" value="{{ _('Add Dataset') }}"></input>
+        </div>
+		
+        <div style="margin-bottom: 10px;">
+            {{ _('Following Resources') }}
+        </div>
+        <div style="margin-bottom: 20px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px; margin-bottom: 10px;">
+                {% for org in c.followed_resources %}
+                        
+                    <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
+                    <input type="hidden" name="foe[{{ org["count"] }}].type" value="resource" />
+                    <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
+                        <td width="*">{{ org["display_name"] }}</td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                    </tr>
+                {% endfor %}
+            </table>
+			<input type="text" id="addResource" style="minWidth: 400px;margin-bottom: 10px;display:block;"  placeholder="{{_('Resource ID') }}"/>
+			<script type="application/javascript">
+					function AddResource(){
+						$.ajax({
+							method: "POST",
+							data: JSON.stringify({user:'{{ c.selUser }}',id:$('#addResource').val()}),
+							url: "/api/action/admin_follow_resource",
+							success: function(result){
+								$("#userSubmitForm").submit();
+							},
+							error: function(){
+								alert('{{ _("Unable to add resource")}}')
+							}
+						});
+						
+					}
+			</script>
+			<input width="*" type="button" onClick="javascript:AddResource()" value="{{ _('Add Resource') }}"></input>
+        </div>
+        
+		
+        <input type="submit" id="userSubmit" value="{{ _('Save Changes') }}" disabled></input>
+		{% endif %}
+		
+		{% if c.selDatasetId %}
+		<input type="hidden" name="foeCount" value="{{ c.fcount }}" />
+		<input type="hidden" name="saveType" value="dataset"/>
+		<input type="hidden" name="selDatasetId" value="{{ c.selDatasetId }}"/>
+		<input type="hidden" name="selDatasetName" value="{{ c.selDatasetName }}"/>
+		<div style="margin-bottom: 20px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;">
+                {% for df in c.datasetFollowers %}
+                        
+                    <input type="hidden" name="foe[{{ df["count"] }}].id" value="{{ df['user_obj']['id'] }}"></input>                   
+                    <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
+                        <td width="*">{{ df["user_obj"]["fullname"] }}</td>
+						<td width="*"><input name="foe[{{ df['count'] }}].notifEmail"  value="{{ df.email }}" ></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ df['count'] }}].active" {% if not df['notif_info'] or df['notif_info'].active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ df['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+		<input type="submit" id="userSubmit" value="{{ _('Save Changes') }}" disabled></input>
+		{% endif %}
+    </form>
+  </div>
+{% endblock %}

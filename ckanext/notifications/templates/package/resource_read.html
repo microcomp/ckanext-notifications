@@ -1,0 +1,31 @@
+{% ckan_extends %}
+
+{% block secondary_content %}
+
+  {% block resources_list %}
+    {% snippet "package/snippets/resources.html", pkg=pkg, active=res.id %}
+  {% endblock %}
+  
+			{% if c.notif_check_result %}
+				<div class="follow_button">
+					{{ h.follow_button('resource', res.id) }}
+				</div>
+			{% endif %}
+			{% if not c.notif_check_result %}
+				{% if c.following %}
+					{{ h.follow_button('resource', res.id) }}			
+				{% endif %}
+				{% if not c.following %}
+					<div class="follow_button">
+						<a class="btn btn-success" href="{{ h.url_for(controller='ckanext.notifications.controller:NotificationsController',action='UserNotifications', fId = c.fId,fType = c.fType, ret_url = h.url_for(controller='package',action='resource_read',id=pkg.name,resource_id=res.id) ) }}">
+							<i class="icon-plus-sign"></i>
+							{{ _('Follow') }}
+						</a>
+					</div>
+				{% endif %}
+			{% endif %}
+
+  {% block resource_license %}
+    {% snippet "snippets/social.html",id=pkg.id %}
+  {% endblock %}
+{% endblock %}

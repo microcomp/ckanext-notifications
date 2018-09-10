@@ -1,0 +1,45 @@
+{#
+Displays a sidebard module with information for given package
+
+pkg    - The package dict that owns the resources.
+
+Example:
+
+  {% snippet "package/snippets/info.html", pkg=pkg %}
+
+#}
+{% if pkg %}
+  <section class="module module-narrow">
+    <div class="module context-info">
+      <div class="module-content">
+        <h1 class="heading">{{ pkg.title or pkg.name }}</h1>
+        <div class="nums">
+          <dl>
+            <dt>{{ _('Followers') }}</dt>
+            <dd>{{ h.SI_number_span(h.get_action('dataset_follower_count', {'id': pkg.id})) }}</dd>
+          </dl>
+        </div>	
+		{% if not hide_follow_button %}
+			{% if notif_check_result %}
+				<div class="follow_button">
+					{{ h.follow_button('dataset', pkg.name) }}
+				</div>
+			{% endif %}
+			{% if not notif_check_result %}
+				{% if following %}
+					{{ h.follow_button('dataset', pkg.name) }}			
+				{% endif %}
+				{% if not following %}
+					<div class="follow_button">
+						<a class="btn btn-success" href="{{ h.url_for(controller='ckanext.notifications.controller:NotificationsController',action='UserNotifications', fId = fId,fType = fType, ret_url = h.url_for(controller='package',action='read',id=pkg.name) ) }}">
+							<i class="icon-plus-sign"></i>
+							{{ _('Follow') }}
+						</a>
+					</div>
+				{% endif %}
+			{% endif %}
+		{% endif %}
+      </div>
+    </div>
+  </section>
+{% endif %}
