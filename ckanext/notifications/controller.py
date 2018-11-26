@@ -39,7 +39,7 @@ class NotificationsController(base.BaseController):
         if fId and fType:
             if fType == "dataset":
                 dictData = toolkit.get_action('package_show')(data_dict={'id':fId})
-                followed.append({"display_name": dictData["name"],"type":fType,"dict":dictData})
+                followed.append({"display_name": dictData["title"],"type":fType,"dict":dictData})
             elif fType == "organization":
                 dictData = toolkit.get_action('organization_show')(data_dict={'id':fId})                
                 followed.append({"display_name": dictData["title"],"type":fType,"dict":dictData})
@@ -51,8 +51,16 @@ class NotificationsController(base.BaseController):
         followSettings = get_follow_settings(c.user)        
         for rf in followSettings:
             if rf.type == "resource":
-                dictData = toolkit.get_action('resource_show')(data_dict={'id':rf.entity_id})               
-                followed.append({"display_name":  dictData["name"] ,"type":"resource","dict":dictData})            
+                dictData = toolkit.get_action('resource_show')(data_dict={'id':rf.entity_id})
+                revisionData = toolkit.get_action('revision_show')(data_dict={'id':dictData["revision_id"]})
+                if revisionData and revisionData["packages"] and len(revisionData["packages"]) > 0:
+                    packageData = toolkit.get_action('package_show')(data_dict={'id':revisionData["packages"][0]})
+                    if packageData:
+                        followed.append({"display_name":  dictData["name"] ,"type":"resource","dict":dictData, "package_data":packageData})
+                    else:
+                        followed.append({"display_name":  dictData["name"] ,"type":"resource","dict":dictData, "package_data":None})
+                else:
+                    followed.append({"display_name":  dictData["name"] ,"type":"resource","dict":dictData, "package_data":None})
             
         count = 0
         for fo in followed:

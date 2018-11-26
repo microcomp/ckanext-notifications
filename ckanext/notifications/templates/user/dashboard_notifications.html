@@ -42,7 +42,7 @@
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
                     <input type="hidden" name="foe[{{ org["count"] }}].type" value="organization" />
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
-                        <td width="*">{{ org["display_name"] }}</td>
+                        <td width="*"><a href="/organization/{{ org["dict"]['name'] }}">{{ org["display_name"] }}</a></td>
                         <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
                         <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>
@@ -61,7 +61,7 @@
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
                     <input type="hidden" name="foe[{{ org["count"] }}].type" value="dataset" />
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
-                        <td width="*">{{ org["display_name"] }}</td>
+                        <td width="*"><a href="/dataset/{{ org["dict"]['name'] }}">{{ org["dict"]['title'] }}</a></td>
                         <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
                         <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>
@@ -80,7 +80,7 @@
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
                     <input type="hidden" name="foe[{{ org["count"] }}].type" value="resource" />
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
-                        <td width="*">{{ org["display_name"] }}</td>
+                        <td width="*"><a href="/dataset/{{ org["package_data"]["name"] }}/resource/{{ org["dict"]["id"] }}">{{ org["package_data"]["title"] }}/{{ org["dict"]["name"] }}</a></td>
                         <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
                         <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>
