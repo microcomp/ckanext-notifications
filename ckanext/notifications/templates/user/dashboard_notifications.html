@@ -12,7 +12,7 @@
   <div>
     <form action="/dashboard/notifications/saveChanges" method="post" enctype="multipart/form-data">
         <div width="40%" style="min-width: 200px; margin-bottom: 20px;">
-            <div width="*" style="margin-right: 10px; display: inline; vertical-align: middle;">{{ _('Notification Email') }}</div>
+            <h4 width="*" style="margin-right: 10px; display: inline; vertical-align: middle;" title="Na tento mail sa budú posielať notifikácie, ktoré majú zaškrtnutý príznak 'Aktívny' v zozname notifikácií. Ak email odstránite, žiadne notifikácie sa posielať nebudú.">{{ _('Notification Email') }}<i  style="margin-left: 3px;" class="fa fa-info-circle"></i></h4>
             <input width="*" style="margin-bottom: 0px;" type="text" name="email" placeholder="{{ _('Setup Your notification email') }}" value="{{ c.notification_email}}" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$" />
         </div>
         {% if c.email_error %}
@@ -33,7 +33,7 @@
         
         {% if c.followed_orgs and c.followed_orgs|count > 0 %}
         <div style="margin-bottom: 10px;">
-            {{ _('Following Organizations')  }}
+            <h4>{{ _('Following Organizations')  }}</h4>
         </div>
         <div style="margin-bottom: 20px;">
             <table width="80%" style="border: 1px solid black; padding: 10px;">
@@ -42,9 +42,9 @@
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
                     <input type="hidden" name="foe[{{ org["count"] }}].type" value="organization" />
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
-                        <td width="*"><a href="/organization/{{ org["dict"]['name'] }}">{{ org["display_name"] }}</a></td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                        <td width="*"><a style="font-size:14px;" href="/organization/{{ org["dict"]['name'] }}">{{ org["display_name"] }}</a></td>
+                        <td width="20%"><input style="font-size:14px; display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div title="Na zašktrnuté záznamy sa budú posielať notifikácie"  style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="font-size:14px; display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div title="Zaškrtnuté záznamy sa po stlačení tlačítka 'Uložiť Zmeny' zmažú, a zároveň sa zruší aj odoberanie danej organizácie" style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>
                 {% endfor %}
             </table>
@@ -52,7 +52,7 @@
         {% endif %}
         {% if c.followed_datasets and c.followed_datasets|count > 0 %}
         <div style="margin-bottom: 10px;">
-            {{ _('Following Datasets')  }}
+            <h4>{{ _('Following Datasets')  }}</h4>
         </div>
         <div style="margin-bottom: 20px;">
             <table width="80%" style="border: 1px solid black; padding: 10px;">
@@ -61,9 +61,9 @@
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
                     <input type="hidden" name="foe[{{ org["count"] }}].type" value="dataset" />
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
-                        <td width="*"><a href="/dataset/{{ org["dict"]['name'] }}">{{ org["dict"]['title'] }}</a></td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                        <td width="*"><a  style="font-size:14px;" href="/dataset/{{ org["dict"]['name'] }}">{{ org["dict"]['title'] }}</a></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div  title="Na zašktrnuté záznamy sa budú posielať notifikácie"  style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div title="Zaškrtnuté záznamy sa po stlačení tlačítka 'Uložiť Zmeny' zmažú, a zároveň sa zruší aj odoberanie daného datasetu" style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>
                 {% endfor %}
             </table>
@@ -71,7 +71,7 @@
         {% endif %}
 		{% if c.followed_resources and c.followed_resources|count > 0 %}
         <div style="margin-bottom: 10px;">
-            {{ _('Following Resources') }}
+            <h4>{{ _('Following Resources') }}</h4>
         </div>
         <div style="margin-bottom: 20px;">
             <table width="80%" style="border: 1px solid black; padding: 10px;">
@@ -80,9 +80,9 @@
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
                     <input type="hidden" name="foe[{{ org["count"] }}].type" value="resource" />
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
-                        <td width="*"><a href="/dataset/{{ org["package_data"]["name"] }}/resource/{{ org["dict"]["id"] }}">{{ org["package_data"]["title"] }}/{{ org["dict"]["name"] }}</a></td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                        <td width="*"><a style="font-size:14px;" href="/dataset/{{ org["package_data"]["name"] }}/resource/{{ org["dict"]["id"] }}">{{ org["package_data"]["title"] }}/{{ org["dict"]["name"] }}</a></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div title="Na zašktrnuté záznamy sa budú posielať notifikácie"  style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div title="Zaškrtnuté záznamy sa po stlačení tlačítka 'Uložiť Zmeny' zmažú, a zároveň sa zruší aj odoberanie daného zdroja"  style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>
                 {% endfor %}
             </table>
