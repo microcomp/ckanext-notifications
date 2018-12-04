@@ -32,3 +32,9 @@ msgstr ""
 
 msgid "Following Resources"
 msgstr ""
+
+msgid "Loading"
+msgstr ""
+
+msgid "NotifEmailTooltip"
+msgstr "Notification entries with checked 'Active' flag will be sent an email to this email address. If you remove this email, no notifications will be sent"

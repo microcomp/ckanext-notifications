@@ -8,11 +8,98 @@
 
 {% block primary_content_inner %}
   <h2 class="hide-heading">{{ _('Notifications') }}</h2>
- 
+	<script type="application/javascript">
+	
+	function getPaginationString(currentPage, maxPage)
+	{
+		var ret = ""
+		
+		if (maxPage > 1){
+			
+			if (currentPage != 1){
+				ret += "<li page='1'><a >1</a></li>\n"
+			}
+			
+			if (currentPage > 4){
+				ret += "<li page='' class='disabled'><a >...</a></li>\n"	
+			}
+			if (currentPage > 3){
+				ret += "<li page='"+ (currentPage - 2).toString() + "'><a >"+ (currentPage - 2).toString() + "</a></li>\n"
+			}
+			
+			if (currentPage > 2){
+				ret += "<li page='"+ (currentPage - 1).toString() + "'><a >"+ (currentPage - 1).toString() + "</a></li>\n"
+			}
+			
+			ret += "<li class='active' page='"+ (currentPage).toString() + "'><a>"+ (currentPage).toString() + "</a></li>\n"
+			
+			if ((currentPage + 1) < maxPage){
+				ret += "<li page='"+ (currentPage + 1).toString() + "'><a >"+ (currentPage + 1).toString() + "</a></li>\n"
+			}	
+
+			if ((currentPage + 2) < maxPage){
+				ret += "<li page='"+ (currentPage + 2).toString() + "'><a >"+ (currentPage + 2).toString() + "</a></li>\n"
+			}
+
+			if ((currentPage + 3) < maxPage){
+				ret += "<li page='' class='disabled'><a >...</a></li>\n"
+			}			
+			
+			if (currentPage < maxPage){
+				ret += "<li page='"+ maxPage.toString() + "'><a >"+ maxPage.toString() + "</a></li>\n"
+				ret += "<li page='"+ (currentPage + 1).toString() +"'><a >»</a></li>\n"
+			}
+			
+		} else {
+			ret += "<li class='active' page='1'><a >1</a></li>\n"
+		}
+		return ret
+		
+	}
+	
+	function linkHook(obj)
+	{		
+		obj = $(obj.target).parent()
+		var currentPage = parseInt($(obj).attr("page"));
+		var maxPage = parseInt($(obj).parent().attr("pages"));
+		var startCount =  parseInt($(obj).parent().attr("startCount"));
+		$(obj).parent().children("li").off("click");
+		var parentUl = $(obj).parent();
+		var tableId = "#"+ $(obj).parent().attr("type") + "Table"
+		$(tableId).html('<center>{{ _("Loading") }}</center>');
+		
+		$.ajax({
+				method: "GET",
+				url: "/dashboard/notifications/notifications_page?startCount=" + startCount.toString() + "&page=" + $(obj).attr("page") +"&type=" + $(obj).parent().attr("type"),
+				success: function(data,status,jqXHR){					
+					$(tableId).html(data);
+					var pgString = getPaginationString(currentPage,maxPage);					
+					parentUl.html(pgString);
+					hookLinks(parentUl);
+				}
+			});
+	}
+	
+	function hookLinks(parentUl)
+	{
+		
+		$(parentUl).children("li:not(.disabled,.active)").click(linkHook);		
+	}
+	
+	$(document).ready(function()
+	{
+	
+		$("div.pagination > ul").each(function(i,el){
+			console.log(i)
+			hookLinks(el)			
+		});	
+	});
+	
+	</script>
   <div>
     <form action="/dashboard/notifications/saveChanges" method="post" enctype="multipart/form-data">
         <div width="40%" style="min-width: 200px; margin-bottom: 20px;">
-            <h4 width="*" style="margin-right: 10px; display: inline; vertical-align: middle;" title="Na tento mail sa budú posielať notifikácie, ktoré majú zaškrtnutý príznak 'Aktívny' v zozname notifikácií. Ak email odstránite, žiadne notifikácie sa posielať nebudú.">{{ _('Notification Email') }}<i  style="margin-left: 3px;" class="fa fa-info-circle"></i></h4>
+            <h4 width="*" style="margin-right: 10px; display: inline; vertical-align: middle;" title="{{ _('NotifEmailTooltip') }}">{{ _('Notification Email') }}<i  style="margin-left: 3px;" class="fa fa-info-circle"></i></h4>
             <input width="*" style="margin-bottom: 0px;" type="text" name="email" placeholder="{{ _('Setup Your notification email') }}" value="{{ c.notification_email}}" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$" />
         </div>
         {% if c.email_error %}
@@ -36,7 +123,7 @@
             <h4>{{ _('Following Organizations')  }}</h4>
         </div>
         <div style="margin-bottom: 20px;">
-            <table width="80%" style="border: 1px solid black; padding: 10px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;" id="organizationTable">
                 {% for org in c.followed_orgs %}
                         
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
@@ -48,6 +135,26 @@
                     </tr>
                 {% endfor %}
             </table>
+			<div  style="width:80%; margin-left: 0px;margin-right:0px" width="80%" class="pagination pagination-centered">
+				<ul type="organization" pages="{{ c.followed_orgs_pages }}" startCount="{{ c.followed_orgs_start_count }}" >
+					
+					<li page="1" class="active"><a >1</a></li>
+					{% if c.followed_orgs_pages > 1 %}
+					<li page="2"><a>2</a></li>
+					{% endif %}
+					{% if c.followed_orgs_pages > 2 %}
+					<li page="3"><a>3</a></li>
+					{% endif %}					
+					{% if c.followed_orgs_pages > 3 %}
+					<li class="disabled"><a >...</a></li>
+					<li page={{ c.followed_orgs_pages }} ><a >{{ followed_orgs_pages }}</a></li>
+					{% endif %}
+					
+					{% if c.followed_orgs_pages > 1 %}
+					<li id="orgs_next_page" page="2"><a >»</a></li>
+					{% endif %}
+				</ul>
+			</div>
         </div>
         {% endif %}
         {% if c.followed_datasets and c.followed_datasets|count > 0 %}
@@ -55,7 +162,7 @@
             <h4>{{ _('Following Datasets')  }}</h4>
         </div>
         <div style="margin-bottom: 20px;">
-            <table width="80%" style="border: 1px solid black; padding: 10px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;" id="datasetTable">
                 {% for org in c.followed_datasets %}
                         
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
@@ -67,6 +174,26 @@
                     </tr>
                 {% endfor %}
             </table>
+			<div   style="width:80%; margin-left: 0px;margin-right:0px" width="80%" class="pagination pagination-centered">
+				<ul type="dataset" pages="{{ c.followed_datasets_pages }}"  startCount="{{ c.followed_datasets_start_count }}">
+					
+					<li page="1" class="active"><a >1</a></li>
+					{% if c.followed_datasets_pages > 1 %}
+					<li page="2"><a>2</a></li>
+					{% endif %}
+					{% if c.followed_datasets_pages > 2 %}
+					<li page="3"><a>3</a></li>
+					{% endif %}					
+					{% if c.followed_datasets_pages > 3 %}
+					<li class="disabled"><a >...</a></li>
+					<li page={{ c.followed_datasets_pages }} ><a >{{ followed_datasets_pages }}</a></li>
+					{% endif %}
+					
+					{% if c.followed_datasets_pages > 1 %}
+					<li id="orgs_next_page" page="2"><a >»</a></li>
+					{% endif %}
+				</ul>
+			</div>
         </div>
         {% endif %}
 		{% if c.followed_resources and c.followed_resources|count > 0 %}
@@ -74,7 +201,7 @@
             <h4>{{ _('Following Resources') }}</h4>
         </div>
         <div style="margin-bottom: 20px;">
-            <table width="80%" style="border: 1px solid black; padding: 10px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;" id="resourceTable">
                 {% for org in c.followed_resources %}
                         
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
@@ -86,6 +213,26 @@
                     </tr>
                 {% endfor %}
             </table>
+			<div style="width:80%; margin-left: 0px;margin-right:0px" class="pagination pagination-centered">
+				<ul type="resource" pages="{{ c.followed_resources_pages }}" startCount="{{ c.followed_resources_start_count }}" >
+					
+					<li page="1" class="active"><a >1</a></li>
+					{% if c.followed_resources_pages > 1 %}
+					<li page="2"><a >2</a></li>
+					{% endif %}
+					{% if c.followed_resources_pages > 2 %}
+					<li page="3"><a >3</a></li>
+					{% endif %}					
+					{% if c.followed_resources_pages > 3 %}
+					<li class="disabled"><a >...</a></li>
+					<li page={{ c.followed_resources_pages }} ><a >{{ followed_resources_pages }}</a></li>
+					{% endif %}
+					
+					{% if c.followed_resources_pages > 1 %}
+					<li id="orgs_next_page" page="2"><a >»</a></li>
+					{% endif %}
+				</ul>
+			</div>
         </div>
         {% endif %}
         <input type="submit" value="{{ _('Save Changes') }}"></input>

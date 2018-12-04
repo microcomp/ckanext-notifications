@@ -1,6 +1,9 @@
 import ckan.plugins as p
 import ckan.lib.base as base
 import ckan.plugins.toolkit as toolkit
+import ckan.lib.helpers as helpers
+import math
+import re
 from ckan.common import _, c, g
 import re
 
@@ -63,21 +66,54 @@ class NotificationsController(base.BaseController):
                     followed.append({"display_name":  dictData["name"] ,"type":"resource","dict":dictData, "package_data":None})
             
         count = 0
-        for fo in followed:
+                
+        
+        c.followed_datasets = list(filter(lambda x: x["type"] == "dataset",followed))
+        c.followed_datasets.sort(key=lambda x: helpers.stripDiacritic(x["dict"]["title"].lower()))
+        c.followed_datasets_count = len(c.followed_datasets)
+        c.followed_datasets_pages = int(math.ceil( float(c.followed_datasets_count)/float(10)))
+        c.followed_datasets = c.followed_datasets[0:10]
+        c.followed_orgs = list(filter(lambda x: x["type"] == "organization",followed))
+        c.followed_orgs.sort(key=lambda x: helpers.stripDiacritic(x["display_name"].lower()))
+        c.followed_orgs_count = len(c.followed_orgs)
+        c.followed_orgs_pages = int(math.ceil( float(c.followed_orgs_count)/float(10)))
+        c.followed_orgs = c.followed_orgs[0:10]
+        c.followed_resources = list(filter(lambda x: x["type"] == "resource",followed))
+        c.followed_resources.sort(key=lambda x: helpers.stripDiacritic((x["package_data"]['title'] + "/" + x["dict"]["name"]).lower()))
+        c.followed_resources_count = len(c.followed_resources)
+        c.followed_resources_pages = int(math.ceil( float(c.followed_resources_count)/float(10)))
+        c.followed_resources = c.followed_resources[0:10]
+        c.ret_url = toolkit.request.params["ret_url"] if "ret_url" in toolkit.request.params else None
+        c.fId = fId
+        c.fType = fType
+        
+        c.followed_datasets_start_count = count
+        for fo in c.followed_datasets:
             fo["count"] = count
             fo["active"] = True
             for fs in followSettings:
                 if fs.entity_id == fo["dict"]["id"]:
                     fo["active"] = fs.active
                     break
-            count += 1        
-        
-        c.followed_datasets = list(filter(lambda x: x["type"] == "dataset",followed))
-        c.followed_orgs = list(filter(lambda x: x["type"] == "organization",followed))
-        c.followed_resources = list(filter(lambda x: x["type"] == "resource",followed))
-        c.ret_url = toolkit.request.params["ret_url"] if "ret_url" in toolkit.request.params else None
-        c.fId = fId
-        c.fType = fType
+            count += 1
+        c.followed_orgs_start_count = count
+        for fo in c.followed_orgs:
+            fo["count"] = count
+            fo["active"] = True
+            for fs in followSettings:
+                if fs.entity_id == fo["dict"]["id"]:
+                    fo["active"] = fs.active
+                    break
+            count += 1
+        c.followed_resources_start_count = count
+        for fo in c.followed_resources:
+            fo["count"] = count
+            fo["active"] = True
+            for fs in followSettings:
+                if fs.entity_id == fo["dict"]["id"]:
+                    fo["active"] = fs.active
+                    break
+            count += 1
         
         c.followed_count = count       
         if "emailError" in toolkit.request.params:
@@ -88,7 +124,9 @@ class NotificationsController(base.BaseController):
         if not dbMail is None:
             c.notification_email = dbMail.email
         return base.render('user/dashboard_notifications.html')
-    def SaveChanges(self):      
+    def SaveChanges(self):
+        if c.userobj is None:
+            base.redirect_to(controller="user", action="login")    
         p = toolkit.request.params
         foeCount = int(p["foeCount"])
         followSettings = get_follow_settings(c.user)
@@ -111,18 +149,22 @@ class NotificationsController(base.BaseController):
         
         NotificationEmailDB.commit()
         
-        for i in range(foeCount):
-            if "foe[{}].id".format(i) not in p:
+        for key in p:
+            matchObj = re.match(r'foe\[(\d+)\]\.id',key, re.I)
+            
+            if not matchObj:
                 continue
-            entityId = p["foe[{}].id".format(i)]
-            type = p["foe[{}].type".format(i)]
+                
+            id = matchObj.groups(1)[0]
+            entityId = p[key]
+            type = p["foe[{}].type".format(id)]
             dbFs = None
             for fs in followSettings:
                 if fs.type == type and fs.entity_id == entityId:
                     dbFs = fs
                     break
             
-            if "foe[{}].delete".format(i) in p and not ("fId" in p and p["fId"] == entityId):
+            if "foe[{}].delete".format(id) in p and not ("fId" in p and p["fId"] == entityId):
                 if type == "organization":
                     toolkit.get_action('unfollow_group')(data_dict={'id' : entityId})
                     if dbFs:
@@ -138,11 +180,11 @@ class NotificationsController(base.BaseController):
             else:
                 if dbFs is None:
                     dbFs = NotificationDB(entityId,userId,True,type)
-                dbFs.active = "foe[{}].active".format(i) in p
+                dbFs.active = "foe[{}].active".format(id) in p
                 dbFs.save()
                 
         
-        if "fId" in p and not notifEmail is None and notifEmail != "":
+        if "fId" in p :
             fId = p["fId"]
             fType = p["fType"]
             if fType == "organization":
@@ -162,7 +204,65 @@ class NotificationsController(base.BaseController):
         else:
             NotificationDB.commit()
         return base.redirect_to('user_dashboard_notifications')
+    
+    def NotificationsPage(self):
+        p = toolkit.request.params
+        requestedPage = int(p["page"]) - 1
+        pageType = p["type"]
+        c.requestedPage = requestedPage
+        c.pageType = pageType
+        startCount = int(p["startCount"])
+        followSettings = get_follow_settings(c.user)        
         
+        if "organization" in pageType:
+            followed = toolkit.get_action('followee_list')(data_dict={'id' : c.user})
+            c.followed = list(filter(lambda x: x["type"] == "organization",followed))
+            c.followed.sort(key=lambda x: helpers.stripDiacritic(x["display_name"].lower()))            
+            c.followed = c.followed[(requestedPage*10):(((requestedPage+1)*10))]
+            
+            for fo in c.followed:
+                fo["url"] = "/organization/" + fo["dict"]["name"]
+        elif "resource" in pageType:
+            followed = []
+            
+            for rf in followSettings:
+                if rf.type == "resource":                    
+                    dictData = toolkit.get_action('resource_show')(data_dict={'id':rf.entity_id})
+                    revisionData = toolkit.get_action('revision_show')(data_dict={'id':dictData["revision_id"]})
+                    if revisionData and revisionData["packages"] and len(revisionData["packages"]) > 0:
+                        packageData = toolkit.get_action('package_show')(data_dict={'id':revisionData["packages"][0]})
+                        if packageData:                            
+                            followed.append({"display_name":  packageData['title'] + "/" + dictData["name"] ,"type":"resource","dict":dictData, "package_data":packageData,"url":"/dataset/" + packageData['name'] + "/resource/" + dictData["id"]})
+                        else:
+                            followed.append({"display_name":  dictData["name"] ,"type":"resource","dict":dictData, "package_data":None})
+                    else:
+                        followed.append({"display_name":  dictData["name"] ,"type":"resource","dict":dictData, "package_data":None})
+            
+            followed.sort(key=lambda x: helpers.stripDiacritic(x["display_name"].lower()))            
+            followed = followed[(requestedPage*10):(((requestedPage+1)*10))]
+            
+            c.followed = followed
+        elif "dataset" in pageType:
+            followed = toolkit.get_action('followee_list')(data_dict={'id' : c.user})
+            c.followed = list(filter(lambda x: x["type"] == "dataset",followed))
+            c.followed.sort(key=lambda x: helpers.stripDiacritic(x["dict"]["title"].lower()))            
+            c.followed = c.followed[(requestedPage*10):(((requestedPage+1)*10))]
+            for fo in c.followed:
+                fo["url"] = "/dataset/" + fo["dict"]["name"]
+                fo["display_name"] = fo["dict"]["title"]
+                
+        for fo in c.followed:
+            fo["count"] = startCount
+            fo["active"] = True
+            for fs in followSettings:
+                if fs.entity_id == fo["dict"]["id"]:
+                    fo["active"] = fs.active
+                    break
+            startCount += 1
+        
+        return base.render('user/notifications_page.html')
+     
+    
     def follow(self):
         toolkit.get_action("follow_resource")(data_dict={'user':c.user,'id':toolkit.request.params['id']})
         

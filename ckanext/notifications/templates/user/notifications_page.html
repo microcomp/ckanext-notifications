@@ -1,0 +1,9 @@
+{% for org in c.followed %}
+                    <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
+                    <input type="hidden" name="foe[{{ org["count"] }}].type" value="{{ org['type'] }}" />
+                    <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
+                        <td width="*"><a style="font-size:14px;" href="{{ org["url"] }}">{{ org["display_name"] }}</a></td>
+                        <td width="20%"><input style="font-size:14px; display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org["active"] %}checked{% endif %}></input><div title="Na zašktrnuté záznamy sa budú posielať notifikácie"  style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="font-size:14px; display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div title="Zaškrtnuté záznamy sa po stlačení tlačítka 'Uložiť Zmeny' zmažú, a zároveň sa zruší aj odoberanie danej organizácie" style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                    </tr>
+{% endfor %}

@@ -32,3 +32,9 @@ msgstr "Odoberané Datasety"
 
 msgid "Following Resources"
 msgstr "Odoberané Dátové Zdroje"
+
+msgid "Loading"
+msgstr "Načítávám"
+
+msgid "NotifEmailTooltip"
+msgstr "Na tento mail sa budú posielať notifikácie, ktoré majú zaškrtnutý príznak 'Aktívny' v zozname notifikácií. Ak email odstránite, žiadne notifikácie sa posielať nebudú."

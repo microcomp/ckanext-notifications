@@ -29,8 +29,135 @@
     </div>	
   </form>
   <script type="application/javascript">
+		function getPaginationString(currentPage, maxPage)
+		{
+			var ret = ""
+			
+			if (maxPage > 1){
+				
+				if (currentPage != 1){
+					ret += "<li page='1'><a >1</a></li>\n"
+				}
+				
+				if (currentPage > 4){
+					ret += "<li page='' class='disabled'><a >...</a></li>\n"	
+				}
+				if (currentPage > 3){
+					ret += "<li page='"+ (currentPage - 2).toString() + "'><a >"+ (currentPage - 2).toString() + "</a></li>\n"
+				}
+				
+				if (currentPage > 2){
+					ret += "<li page='"+ (currentPage - 1).toString() + "'><a >"+ (currentPage - 1).toString() + "</a></li>\n"
+				}
+				
+				ret += "<li class='active' page='"+ (currentPage).toString() + "'><a>"+ (currentPage).toString() + "</a></li>\n"
+				
+				if ((currentPage + 1) < maxPage){
+					ret += "<li page='"+ (currentPage + 1).toString() + "'><a >"+ (currentPage + 1).toString() + "</a></li>\n"
+				}	
+	
+				if ((currentPage + 2) < maxPage){
+					ret += "<li page='"+ (currentPage + 2).toString() + "'><a >"+ (currentPage + 2).toString() + "</a></li>\n"
+				}
+	
+				if ((currentPage + 3) < maxPage){
+					ret += "<li page='' class='disabled'><a >...</a></li>\n"
+				}			
+				
+				if (currentPage < maxPage){
+					ret += "<li page='"+ maxPage.toString() + "'><a >"+ maxPage.toString() + "</a></li>\n"
+					ret += "<li page='"+ (currentPage + 1).toString() +"'><a >»</a></li>\n"
+				}
+				
+			} else {
+				ret += "<li class='active' page='1'><a >1</a></li>\n"
+			}
+			return ret
+			
+		}
 		
+		function linkHook(obj)
+		{		
+			obj = $(obj.target).parent()
+			var currentPage = parseInt($(obj).attr("page"));
+			var maxPage = parseInt($(obj).parent().attr("pages"));
+			var startCount =  parseInt($(obj).parent().attr("startCount"));
+			$(obj).parent().children("li").off("click");
+			var parentUl = $(obj).parent();
+			var tableId = "#"+ $(obj).parent().attr("type") + "Table"
+			$(tableId).html('<center>{{ _("Loading") }}</center>');
+			
+			$.ajax({
+					method: "GET",
+					url: "/admin/notifications/notifications_page?startCount=" + startCount.toString() + "&page=" + $(obj).attr("page") +"&type=" + $(obj).parent().attr("type")+"&selUser={{ c.selUser }}",
+					success: function(data,status,jqXHR){
+						$(tableId).html(data);
+						var pgString = getPaginationString(currentPage,maxPage);
+						parentUl.html(pgString);
+						hookLinks(parentUl);
+					}
+				});
+		}
 		
+		function hookLinks(parentUl)
+		{
+			
+			$(parentUl).children("li:not(.disabled,.active)").click(linkHook);		
+		}
+		
+		$(document).ready(function()
+		{
+		
+			$("div.pagination > ul").each(function(i,el){
+				
+				hookLinks(el)			
+			});	
+		});
+		
+		function AddOrg(){
+			$.ajax({
+				method: "POST",
+				data: JSON.stringify({selUser:'{{ c.selUser }}',name:$('#field-addOrganization').val()}),
+				url: "/api/action/admin_follow_org",
+				success: function(result){
+					$("#userSubmitForm").submit();
+				},
+				error: function(){
+					alert('{{ _("Unable to add rganization")}}')
+				}
+			});
+			
+		}
+		
+		function AddDataset(){
+			$.ajax({
+				method: "POST",
+				data: JSON.stringify({selUser:'{{ c.selUser }}',name:$('#field-addDataset').val()}),
+				url: "/api/action/admin_follow_dataset",
+				success: function(result){
+					$("#userSubmitForm").submit();
+				},
+				error: function(){
+					alert('{{ _("Unable to add dataset")}}')
+				}
+			});
+			
+		}
+		
+		function AddResource(){
+			$.ajax({
+				method: "POST",
+				data: JSON.stringify({user:'{{ c.selUser }}',id:$('#addResource').val()}),
+				url: "/api/action/admin_follow_resource",
+				success: function(result){
+					$("#userSubmitForm").submit();
+				},
+				error: function(){
+					alert('{{ _("Unable to add resource")}}')
+				}
+			});
+			
+		}
 		
 		$(window).load(function(){
 			$('#field-users').change(function(ev){
@@ -64,7 +191,7 @@
 		<input type="hidden" name="saveType" value="user"/>
 		<input type="hidden" name="selUser" value="{{ c.selUser }}"/>
         <div width="40%" style="min-width: 200px; margin-bottom: 20px;">
-            <div width="*" style="margin-right: 10px; display: inline; vertical-align: middle;">{{ _('Notification Email') }}</div>
+            <h4 width="*" style="margin-right: 10px; display: inline; vertical-align: middle;" title="{{ _('NotifEmailTooltip') }}">{{ _('Notification Email') }}<i  style="margin-left: 3px;" class="fa fa-info-circle"></i></h4>
             <input width="*" style="margin-bottom: 0px;" type="text" name="email" placeholder="{{ _('Setup Your notification email') }}" value="{{ c.notification_email}}" pattern="^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$" />
         </div>
         {% if c.email_error %}
@@ -72,26 +199,43 @@
         {% endif %}
         
         <input type="hidden" name="foeCount" value="{{ c.followed_count }}" />
-       
-        
-        
-      
+             
         <div style="margin-bottom: 10px;">
-            {{ _('Following Organizations')  }}
+            <h4>{{ _('Following Organizations')  }}</h4>
         </div>
         <div style="margin-bottom: 20px;">
-            <table width="80%" style="border: 1px solid black; padding: 10px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;"  id="organizationTable">
                 {% for org in c.followed_orgs %}
                         
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
                     <input type="hidden" name="foe[{{ org["count"] }}].type" value="organization" />
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
-                        <td width="*">{{ org["display_name"] }}</td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                        <td width="*"><a style="font-size:14px;" href="/organization/{{ org["dict"]['name'] }}">{{ org["display_name"] }}</a></td>
+                        <td width="20%"><input style="font-size:14px; display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div title="Na zašktrnuté záznamy sa budú posielať notifikácie"  style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="font-size:14px; display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div title="Zaškrtnuté záznamy sa po stlačení tlačítka 'Uložiť Zmeny' zmažú, a zároveň sa zruší aj odoberanie danej organizácie" style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>
                 {% endfor %}
             </table>
+			<div  style="width:80%; margin-left: 0px;margin-right:0px" width="80%" class="pagination pagination-centered">
+				<ul type="organization" pages="{{ c.followed_orgs_pages }}" startCount="{{ c.followed_orgs_start_count }}" >
+					
+					<li page="1" class="active"><a >1</a></li>
+					{% if c.followed_orgs_pages > 1 %}
+					<li page="2"><a>2</a></li>
+					{% endif %}
+					{% if c.followed_orgs_pages > 2 %}
+					<li page="3"><a>3</a></li>
+					{% endif %}					
+					{% if c.followed_orgs_pages > 3 %}
+					<li class="disabled"><a >...</a></li>
+					<li page={{ c.followed_orgs_pages }} ><a >{{ followed_orgs_pages }}</a></li>
+					{% endif %}
+					
+					{% if c.followed_orgs_pages > 1 %}
+					<li id="orgs_next_page" page="2"><a >»</a></li>
+					{% endif %}
+				</ul>
+			</div>
 			<div width="40%" style="min-width: 200px; margin-bottom: 20px;">
 				<div class="control-group">
 					<label for="field-addOrganization" class="control-label">{{ _('Organizations') }}</label>
@@ -104,44 +248,48 @@
 						</select>
 			
 					</div>
-				</div>	
-			<script type="application/javascript">
-					function AddOrg(){
-						$.ajax({
-							method: "POST",
-							data: JSON.stringify({selUser:'{{ c.selUser }}',name:$('#field-addOrganization').val()}),
-							url: "/api/action/admin_follow_org",
-							success: function(result){
-								$("#userSubmitForm").submit();
-							},
-							error: function(){
-								alert('{{ _("Unable to add rganization")}}')
-							}
-						});
-						
-					}
-				</script>
+				</div>				
 				<input width="*" type="button" style="margin-right: 10px; display: inline; vertical-align: middle;" onClick="javascript:AddOrg()" value="{{ _('Add Organization') }}"></input>
 		</div>
         </div>
        
         
         <div style="margin-bottom: 10px;">
-            {{ _('Following Datasets')  }}
+             <h4>{{ _('Following Datasets')  }}</h4>
         </div>
         <div style="margin-bottom: 20px;">
-            <table width="80%" style="border: 1px solid black; padding: 10px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px;" id="datasetTable">
                 {% for org in c.followed_datasets %}
                         
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
                     <input type="hidden" name="foe[{{ org["count"] }}].type" value="dataset" />
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
-                        <td width="*">{{ org["display_name"] }}</td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+						<td width="*"><a  style="font-size:14px;" href="/dataset/{{ org["dict"]['name'] }}">{{ org["dict"]['title'] }}</a></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div  title="Na zašktrnuté záznamy sa budú posielať notifikácie"  style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div title="Zaškrtnuté záznamy sa po stlačení tlačítka 'Uložiť Zmeny' zmažú, a zároveň sa zruší aj odoberanie daného datasetu" style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>
                 {% endfor %}
             </table>
+			<div   style="width:80%; margin-left: 0px;margin-right:0px" width="80%" class="pagination pagination-centered">
+				<ul type="dataset" pages="{{ c.followed_datasets_pages }}"  startCount="{{ c.followed_datasets_start_count }}">
+					
+					<li page="1" class="active"><a >1</a></li>
+					{% if c.followed_datasets_pages > 1 %}
+					<li page="2"><a>2</a></li>
+					{% endif %}
+					{% if c.followed_datasets_pages > 2 %}
+					<li page="3"><a>3</a></li>
+					{% endif %}					
+					{% if c.followed_datasets_pages > 3 %}
+					<li class="disabled"><a >...</a></li>
+					<li page={{ c.followed_datasets_pages }} ><a >{{ followed_datasets_pages }}</a></li>
+					{% endif %}
+					
+					{% if c.followed_datasets_pages > 1 %}
+					<li id="orgs_next_page" page="2"><a >»</a></li>
+					{% endif %}
+				</ul>
+			</div>
 			<div width="40%" style="min-width: 200px; margin-bottom: 20px;">
 				<div class="control-group">
 					<label for="field-addDataset" class="control-label">{{ _('Datasets') }}</label>
@@ -156,57 +304,48 @@
 					</div>
 				</div>	
 			<script type="application/javascript">
-					function AddDataset(){
-						$.ajax({
-							method: "POST",
-							data: JSON.stringify({selUser:'{{ c.selUser }}',name:$('#field-addDataset').val()}),
-							url: "/api/action/admin_follow_dataset",
-							success: function(result){
-								$("#userSubmitForm").submit();
-							},
-							error: function(){
-								alert('{{ _("Unable to add dataset")}}')
-							}
-						});
-						
-					}
+					
 			</script>
 			<input width="*" type="button" style="margin-right: 10px; display: inline; vertical-align: middle;" onClick="javascript:AddDataset()" value="{{ _('Add Dataset') }}"></input>
         </div>
 		
         <div style="margin-bottom: 10px;">
-            {{ _('Following Resources') }}
+          <h4>{{ _('Following Resources') }}</h4>
         </div>
         <div style="margin-bottom: 20px;">
-            <table width="80%" style="border: 1px solid black; padding: 10px; margin-bottom: 10px;">
+            <table width="80%" style="border: 1px solid black; padding: 10px; margin-bottom: 10px;" id="resourceTable">
                 {% for org in c.followed_resources %}
                         
                     <input type="hidden" name="foe[{{ org["count"] }}].id" value="{{ org['dict']['id'] }}"></input>
                     <input type="hidden" name="foe[{{ org["count"] }}].type" value="resource" />
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
-                        <td width="*">{{ org["display_name"] }}</td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
-                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
+                        <td width="*"><a style="font-size:14px;" href="/dataset/{{ org["package_data"]["name"] }}/resource/{{ org["dict"]["id"] }}">{{ org["package_data"]["title"] }}/{{ org["dict"]["name"] }}</a></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].active" {% if org.active %}checked{% endif %}></input><div title="Na zašktrnuté záznamy sa budú posielať notifikácie"  style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
+                        <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ org['count'] }}].delete"></input><div title="Zaškrtnuté záznamy sa po stlačení tlačítka 'Uložiť Zmeny' zmažú, a zároveň sa zruší aj odoberanie daného zdroja"  style="font-size:14px;display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>
                 {% endfor %}
             </table>
-			<input type="text" id="addResource" style="minWidth: 400px;margin-bottom: 10px;display:block;"  placeholder="{{_('Resource ID') }}"/>
-			<script type="application/javascript">
-					function AddResource(){
-						$.ajax({
-							method: "POST",
-							data: JSON.stringify({user:'{{ c.selUser }}',id:$('#addResource').val()}),
-							url: "/api/action/admin_follow_resource",
-							success: function(result){
-								$("#userSubmitForm").submit();
-							},
-							error: function(){
-								alert('{{ _("Unable to add resource")}}')
-							}
-						});
-						
-					}
-			</script>
+			<div style="width:80%; margin-left: 0px;margin-right:0px" class="pagination pagination-centered">
+				<ul type="resource" pages="{{ c.followed_resources_pages }}" startCount="{{ c.followed_resources_start_count }}" >
+					
+					<li page="1" class="active"><a >1</a></li>
+					{% if c.followed_resources_pages > 1 %}
+					<li page="2"><a >2</a></li>
+					{% endif %}
+					{% if c.followed_resources_pages > 2 %}
+					<li page="3"><a >3</a></li>
+					{% endif %}					
+					{% if c.followed_resources_pages > 3 %}
+					<li class="disabled"><a >...</a></li>
+					<li page={{ c.followed_resources_pages }} ><a >{{ followed_resources_pages }}</a></li>
+					{% endif %}
+					
+					{% if c.followed_resources_pages > 1 %}
+					<li id="orgs_next_page" page="2"><a >»</a></li>
+					{% endif %}
+				</ul>
+			</div>
+			<input type="text" id="addResource" style="minWidth: 400px;margin-bottom: 10px;display:block;"  placeholder="{{_('Resource ID') }}"/>			
 			<input width="*" type="button" onClick="javascript:AddResource()" value="{{ _('Add Resource') }}"></input>
         </div>
         

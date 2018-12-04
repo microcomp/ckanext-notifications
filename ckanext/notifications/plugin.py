@@ -3,6 +3,7 @@ import uuid
 import logging
 import datetime
 
+from ckan.common import _, c, g
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 import ckan.lib.helpers as h
@@ -187,7 +188,7 @@ def check_notification_email(context, data_dict):
     else:
         return True
 
-def notification_administration(context,data_dict):
+def notification_administration():
     context = {'model': model, 'session': model.Session,
                'user': c.user or c.author, 'auth_user_obj': c.userobj,
                'for_view': True}
@@ -289,6 +290,16 @@ class NotificationPlugin(plugins.SingletonPlugin):
             '/admin/notifications/saveChanges', #url to map path to
             controller='ckanext.notifications.admin_controller:AdminNotificationsController', #controller
             action='SaveChanges') #controller action (method)
+        m.connect(
+            'user_dashboard_notifications_page', #name of path route
+            '/dashboard/notifications/notifications_page', #url to map path to
+            controller='ckanext.notifications.controller:NotificationsController', #controller
+            action='NotificationsPage') #controller action (method)
+        m.connect(
+            'admin_dashboard_notifications_page', #name of path route
+            '/admin/notifications/notifications_page', #url to map path to
+            controller='ckanext.notifications.admin_controller:AdminNotificationsController', #controller
+            action='NotificationsPage') #controller action (method)
         return m
     
     def get_actions(self):
@@ -316,7 +327,7 @@ class NotificationPlugin(plugins.SingletonPlugin):
         log.info('mapper: %s', mapper)
         log.info('connection: %s', connection)
         log.info('instance: %s', instance)
-
+    
     def configure(self, config):
         self.site_url = config.get('ckan.site_url')
         self.smtp_server = config.get('smtp.server', 'localhost:25')
