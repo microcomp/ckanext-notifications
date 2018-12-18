@@ -445,7 +445,7 @@ class NotificationPlugin(plugins.SingletonPlugin):
                 data_dict['private'] = True
             else:
                 data_dict['private'] = False
-                data_dict['recipients'] =  data_dict['recipients'] + get_resource_followers_active(entity.id) + get_dataset_followers_active(data_dict['package_id']) + get_dataset_followers_active(data_dict['package_owner_org'])
+                data_dict['recipients'] =  data_dict['recipients'] + get_resource_followers_active(entity.id) + get_dataset_followers_active(data_dict['package_id']) + get_org_followers_active(data_dict['package_owner_org'])
         data_dict['revision_id'] = entity.revision_id
         #revision = model.Session.query(model.Revision).get(entity.revision_id)
         #executor_id = toolkit.get_converter('convert_user_name_or_id_to_id')(revision.author, {'session' : model.Session})
