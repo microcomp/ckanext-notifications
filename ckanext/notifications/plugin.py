@@ -249,6 +249,29 @@ def send_general_notification(context, data_dict):
     toolkit.get_action('task_status_update')(task_context, task_status)
     celery.send_task('notifications.general.send', args=[context, data_dict], task_id=task_id)
 
+def notify_package_create(context,data_dict):
+    if "defer_commit" in context and context["defer_commit"]:
+        return
+
+    NotificationPlugin.plugRef._notify(context["package"],"new")            
+    
+def notify_package_update(context,data_dict):
+    if "defer_commit" in context and context["defer_commit"]:
+        return
+
+    NotificationPlugin.plugRef._notify(context["package"],"changed")
+    
+def notify_resource_create(context,data_dict):
+    if "defer_commit" in context and context["defer_commit"]:
+        return
+
+    NotificationPlugin.plugRef._notify(context["resource"],"new")
+    
+def notify_resource_update(context,data_dict):
+    if "defer_commit" in context and context["defer_commit"]:
+        return    
+    NotificationPlugin.plugRef._notify(context["resource"],"changed")
+    
 
 class NotificationPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IActions)
@@ -260,6 +283,8 @@ class NotificationPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IRoutes, inherit=True)
     plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.ITemplateHelpers, inherit=False)
+    
+    plugRef = None
     
     def get_helpers(self):
         return {'notification_administration' : notification_administration}
@@ -313,7 +338,11 @@ class NotificationPlugin(plugins.SingletonPlugin):
         'admin_unfollow_resource':admin_unfollow_resource,
         'admin_get_user_followings':admin_get_user_followings,
         'admin_follow_org':admin_follow_org,
-        'admin_follow_dataset':admin_follow_dataset
+        'admin_follow_dataset':admin_follow_dataset,
+        'notify_package_create' : notify_package_create,
+        'notify_package_update' : notify_package_update,
+        'notify_resource_create' : notify_resource_create,
+        'notify_resource_update' : notify_resource_update
         }
     
     def after_insert(self, mapper, connection, instance):
@@ -346,22 +375,20 @@ class NotificationPlugin(plugins.SingletonPlugin):
         if not notificationData_table.exists():
             notificationData_table.create()
         if not notificationEmail_table.exists():
-            notificationEmail_table.create()
-        
+            notificationEmail_table.create()      
+        NotificationPlugin.plugRef = self
         
     def update_config(self, config):
         toolkit.add_template_directory(config, 'templates')       
     
-    def notify(self, entity, operation=None):
-        log.warn("notify")
-        log.info('entity: %s', entity)
-        log.info('operation: %s', operation)
+    def notify(self, entity, operation=None):        
         if not isinstance(entity, model.Resource) and not isinstance(entity, model.Package):
             return
 
-        if operation:
+        if operation=="deleted":                
                 self._notify(entity, operation)
         else:
+            return
             # if operation is None, resource URL has been changed, as the
             # notify function in IResourceUrlChange only takes 1 parameter
             self._notify(entity, 'resource_url_changed')
@@ -393,8 +420,11 @@ class NotificationPlugin(plugins.SingletonPlugin):
         user = toolkit.get_action('get_site_user')(
             {'model': model, 'ignore_auth': True, 'defer_commit': True}, {}
         )
+        
+        log.warn("notify")
         log.info('entity: %s', entity)
-        log.info('operation: %s', operation)
+        log.info('operation: %s', operation)                               
+        
         data_dict = {}
         data_dict['recipients'] = []
         data_dict['entity_id'] = entity.id
@@ -402,11 +432,12 @@ class NotificationPlugin(plugins.SingletonPlugin):
         if isinstance(entity, model.Package):
             if operation=='new':
                 data_dict['entity_action'] = u'vytvorený dataset'
-            elif operation=='changed':
-                return
+            elif operation=='resource_url_changed':                
                 data_dict['entity_action'] = u'upravený dataset'                
             elif operation=='deleted':
                 data_dict['entity_action'] = u'odstránený dataset'
+            elif operation=='changed':
+                data_dict['entity_action'] = u'upravený dataset'                
             data_dict['private'] = entity.private
             if not data_dict['private']:
                 data_dict['recipients'] = data_dict['recipients'] + \
@@ -425,10 +456,13 @@ class NotificationPlugin(plugins.SingletonPlugin):
         else:
             if operation=='new':
                 data_dict['entity_action'] = u'vytvorený dátový zdroj'
-            elif operation=='changed':
-                data_dict['entity_action'] = u'upravený dátový zdroj'
+            elif operation=='resource_url_changed':                
+                data_dict['entity_action'] = u'upravený dátový zdroj'                
             elif operation=='deleted':
                 data_dict['entity_action'] = u'odstránený dátový zdroj'
+            elif operation=='changed':
+                data_dict['entity_action'] = u'upravený dátový zdroj'                
+            
             data_dict['entity_type'] = 'resource'
             data_dict['package_id'] = entity.resource_group.package.id
             data_dict['entity_url'] = toolkit.url_for(controller='package', action='resource_read',id=data_dict['package_id'], resource_id = entity.id)
@@ -476,5 +510,5 @@ class NotificationPlugin(plugins.SingletonPlugin):
                    'mail_from_name' : self.mail_from_name
         }
         celery.send_task('notifications.send', args=[context, data_dict], task_id=task_id)
-        
+        #NotificationTimes.commit()
         
