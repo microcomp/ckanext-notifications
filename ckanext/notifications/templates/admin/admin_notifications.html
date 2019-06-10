@@ -358,14 +358,14 @@
 		<input type="hidden" name="saveType" value="dataset"/>
 		<input type="hidden" name="selDatasetId" value="{{ c.selDatasetId }}"/>
 		<input type="hidden" name="selDatasetName" value="{{ c.selDatasetName }}"/>
-		<div style="margin-bottom: 20px;">
-            <table width="80%" style="border: 1px solid black; padding: 10px;">
+		<div style="margin-bottom: 20px; width:100%;">
+            <table width="100%" style="border: 1px solid black; padding: 10px;">
                 {% for df in c.datasetFollowers %}
                         
                     <input type="hidden" name="foe[{{ df["count"] }}].id" value="{{ df['user_obj']['id'] }}"></input>                   
                     <tr style="minHeight: 20px; margin-top:5px; margin-bottom: 5px;">
                         <td width="*">{{ df["user_obj"]["fullname"] }}</td>
-						<td width="*"><input name="foe[{{ df['count'] }}].notifEmail"  value="{{ df.email }}" ></td>
+						<td width="*"><input style="width:90%" name="foe[{{ df['count'] }}].notifEmail"  value="{{ df.email }}" ></td>
                         <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ df['count'] }}].active" {% if not df['notif_info'] or df['notif_info'].active %}checked{% endif %}></input><div style="display: inline; vertical-align: middle;"> {{ _('Active') }}</div></td>
                         <td width="20%"><input style="display: inline; vertical-align: middle; top: 0px;" type="checkbox" name="foe[{{ df['count'] }}].delete"></input><div style="display: inline; vertical-align: middle;"> {{ _('Delete') }}</div></td>
                     </tr>

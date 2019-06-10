@@ -15,7 +15,7 @@ def get_dataset_followers(dataset_id):
     results = NotificationDB.get(**search)
     context = {}
     context["ignore_auth"] = True
-    dsFollowers = toolkit.get_action('dataset_follower_list')(context = context, data_dict={'id' : dataset_id})
+    dsFollowers = toolkit.get_action('dataset_follower_list')(context = {'ignore_auth':True}, data_dict={'id' : dataset_id})
     users = []
     count = 0
     for fol in dsFollowers:
@@ -145,7 +145,7 @@ class AdminNotificationsController(base.BaseController):
             search = {'entity_id': c.selDatasetId, 'type':'dataset'}
             results = NotificationDB.get(**search)
             c.results = results
-            dsFollowers = toolkit.get_action('dataset_follower_list')(context = context, data_dict={'id' : c.selDatasetId})
+            dsFollowers = toolkit.get_action('dataset_follower_list')(context = {'ignore_auth':True}, data_dict={'id' : c.selDatasetId})
             users = []
             count = 0
             for fol in dsFollowers:
