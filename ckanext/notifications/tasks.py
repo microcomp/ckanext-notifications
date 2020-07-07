@@ -10,6 +10,7 @@ import uuid
 from ckan import model
 from ckan.lib.celery_app import celery
 import logging
+from datetime import datetime
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ def send_notifications(context, data_dict):
     sender_name = context['mail_from_name']
     subject = u'Notifikácia: {action} {name} ({id})'
     subject = subject.format(action = data_dict['entity_action'], name = data_dict['entity_name'], id = data_dict['entity_id'])
+
     message = u'''
 Dobrý deň {name},
 oznamujeme Vám, že bol {action} {entity_name} ({entity_id}).
@@ -49,7 +51,9 @@ V systéme MOD je dostupný na URL adrese: {url} .
 Tieto notifikácie je možné zrušiť na adrese: {notif_url}
 
 Tento email Vám bol vygenerovaný automaticky, preto naň, prosím, neodpisujte.
-   
+
+Táto notifikácia bola vygenerovaná v čase {timestamp}.
+
 {signature}
 '''
     url = urlparse.urljoin(context['site_url'], data_dict['entity_url'])
@@ -57,11 +61,13 @@ Tento email Vám bol vygenerovaný automaticky, preto naň, prosím, neodpisujte
     recipients = data_dict['recipients']
     log.info('recipients without duplicates: %s', recipients)
     sended = []
+    timestamp = datetime.now().strftime("%d.%m.%Y %H:%M:%S.%f")
+    
     for recipient in recipients:
         if recipient[0] in sended:
             continue
         sended.append(recipient[0])
-        message = message.format(name=recipient[1], action = data_dict['entity_action'], entity_name = data_dict['entity_name'], entity_id = data_dict['entity_id'], url = url, signature = sender_name, notif_url = notif_url)
+        message = message.format(name=recipient[1], action = data_dict['entity_action'], entity_name = data_dict['entity_name'], entity_id = data_dict['entity_id'], url = url, signature = sender_name, notif_url = notif_url, timestamp=timestamp)
         _send_mail(sender, sender_name, recipient[0], recipient[1], subject, message, mailserver)
     mailserver.quit()
     
